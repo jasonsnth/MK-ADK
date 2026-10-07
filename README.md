@@ -1,1 +1,1 @@
-# Analisis-Data-Kategorik
+NAMA: JASON - NIM: 231061012
