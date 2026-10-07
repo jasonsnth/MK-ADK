@@ -1,0 +1,381 @@
+---
+title: "Tugas 1 — Pengantar Analisis Data Kategori"
+subtitle: "Latihan Analisis Data dengan R dan Quarto"
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+    toc-title: "Daftar Isi"
+    toc-depth: 2
+    toc-location: right
+    code-copy: false
+    code-tools: false
+    number-sections: true
+    embed-resources: true
+    title-block-banner: true
+execute:
+  echo: true
+  warning: false
+  message: false
+lang: id
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+identitas <- read.csv("identitas_tugas.csv", stringsAsFactors = FALSE)
+file_data <- file.path("data", identitas$file_data[1])
+
+data <- read.csv(
+  file_data,
+  na.strings = c("", "NA"),
+  stringsAsFactors = FALSE
+)
+```
+
+::: {.student-card}
+<div class="label">Mahasiswa</div>
+<div class="value">`r identitas$Nama[1]`</div>
+
+<div class="label">NIM</div>
+<div class="value">`r identitas$NIM[1]`</div>
+
+<div class="label">Kode Tugas</div>
+<div class="value">`r identitas$kode_tugas[1]`</div>
+:::
+
+::: {.learning-box}
+**Tujuan tugas.** Gunakan kembali konsep dan fungsi R yang telah dibahas pada Pertemuan 1
+untuk mengenali struktur data kategori, membuat ringkasan deskriptif, memvisualisasikan data,
+dan menjelaskan insight secara hati-hati.
+:::
+
+::: {.callout-note}
+## Pola kerja
+
+Ikuti pola kelas: **predict → run → inspect → explain**.
+
+Pada setiap bagian diberikan **sedikit petunjuk kode**.  
+Jika diminta menjelaskan atau menuliskan interpretasi, gunakan kotak **Jawaban Anda** yang telah disediakan.
+:::
+
+# 1. Mengenali Data
+
+Gunakan R untuk melihat beberapa baris awal, struktur data, dan nama variabel.
+
+::: {.callout-tip}
+## Petunjuk kode
+
+```r
+head(...)
+str(...)
+names(...)
+```
+
+Ganti `...` dengan objek data yang digunakan.
+:::
+
+```{r}
+# Tulis kode Anda di sini
+head(data)
+str(data)
+names(data)
+```
+
+Lengkapi tabel berikut.
+
+| Variabel | Jenis Variabel | Alasan Singkat |
+|---|---|---|
+| RecordID | Identifier (kode unik) | Hanya penanda tiap responden, tidak untuk dihitung |
+| ProgramStudi | Nominal | Kategori program studi tanpa urutan |
+| Gender | Nominal | Kategori L/P tanpa urutan |
+| DeviceUtama | Nominal | Jenis perangkat tanpa tingkatan |
+| ModaBelajar | Nominal | Cara belajar tanpa urutan |
+| Kepuasan | Ordinal | Ada tingkatan: Tidak Puas < Cukup < Puas < Sangat Puas |
+| IntensitasBelajar | Ordinal | Ada tingkatan: Rendah < Sedang < Tinggi |
+| DurasiBelajarJam | Numerik (kontinu) | Hasil pengukuran jam, bisa dijumlah/dirata-rata |
+
+Jawab singkat:
+
+1. Variabel mana yang merupakan identifier?
+2. Variabel mana yang bersifat ordinal?
+3. Mengapa kode angka belum tentu berarti data numerik?
+
+::: {.answer-box}
+**Jawaban Anda**
+
+1. `RecordID`, karena hanya kode unik untuk membedakan setiap responden (107 ID, tidak ada yang sama).
+2. `Kepuasan` (Tidak Puas < Cukup < Puas < Sangat Puas) dan `IntensitasBelajar` (Rendah < Sedang < Tinggi).
+3. Karena angka bisa hanya berfungsi sebagai label (misalnya `RecordID`), sehingga menjumlah atau merata-ratakannya tidak bermakna. Jenis variabel ditentukan oleh arti datanya, bukan oleh tampilannya.
+:::
+
+# 2. Menyiapkan Data Kategori
+
+Variabel latihan Anda:
+
+```{r}
+cat("Nominal :", identitas$nominal_utama[1], "\n")
+cat("Ordinal :", identitas$ordinal_utama[1], "\n")
+cat("Urutan  :", identitas$urutan_ordinal[1], "\n")
+```
+
+Lakukan hal berikut:
+
+1. ubah variabel nominal menjadi factor;
+2. ubah variabel ordinal menjadi ordered factor;
+3. periksa level kategorinya.
+
+::: {.callout-tip}
+## Petunjuk kode
+
+Untuk nominal:
+
+```r
+factor(...)
+levels(...)
+```
+
+Untuk ordinal:
+
+```r
+factor(..., levels = ..., ordered = TRUE)
+```
+:::
+
+```{r}
+nominal_var <- identitas$nominal_utama[1]
+ordinal_var <- identitas$ordinal_utama[1]
+urutan <- strsplit(identitas$urutan_ordinal[1], "\\|")[[1]]
+
+# Tulis kode Anda di bawah ini
+data[[nominal_var]] <- factor(data[[nominal_var]])
+data[[ordinal_var]] <- factor(data[[ordinal_var]], levels = urutan, ordered = TRUE)
+
+levels(data[[nominal_var]])
+levels(data[[ordinal_var]])
+```
+
+Tuliskan satu kalimat: **mengapa urutan level ordinal perlu ditetapkan dengan benar?**
+
+::: {.answer-box}
+**Jawaban Anda**
+
+Urutan level harus ditetapkan agar R tidak mengurutkannya secara alfabet (Cukup, Puas, Sangat Puas, Tidak Puas), sehingga tabel dan grafik menampilkan tingkatan kepuasan yang benar dari Tidak Puas sampai Sangat Puas.
+:::
+
+# 3. Quality Control Awal
+
+Lakukan pemeriksaan sederhana terhadap:
+
+- struktur data;
+- level/kategori;
+- missing value;
+- konsistensi penulisan kategori.
+
+::: {.callout-tip}
+## Petunjuk kode
+
+Beberapa pola fungsi yang dapat digunakan:
+
+```r
+str(...)
+levels(...)
+unique(...)
+is.na(...)
+colSums(...)
+```
+
+Pilih fungsi yang sesuai dengan tujuan pemeriksaan Anda.
+:::
+
+```{r}
+# Tulis kode Anda di sini
+str(data)                         # struktur data
+levels(data[[nominal_var]])       # level nominal
+levels(data[[ordinal_var]])       # level ordinal (urut)
+unique(data$ModaBelajar)          # cek konsistensi penulisan kategori
+unique(data$IntensitasBelajar)
+colSums(is.na(data))              # missing value per kolom
+sum(duplicated(data$RecordID))    # cek ID ganda
+```
+
+Tuliskan **dua temuan singkat** dari pemeriksaan tersebut.
+
+::: {.answer-box}
+**Jawaban Anda**
+
+1. Terdapat 5 baris dengan nilai kosong (*missing*): `DeviceUtama` 1, `ModaBelajar` 1, `Kepuasan` 2, dan `IntensitasBelajar` 1. Jadi analisis `DeviceUtama` memakai 106 data, dan `Kepuasan` memakai 105 data.
+2. Penulisan kategori sudah konsisten (tidak ada salah ketik atau perbedaan huruf besar/kecil), dan `RecordID` unik tanpa duplikat sehingga datanya cukup bersih. Jumlah level sesuai: 3 level `DeviceUtama` dan 4 level `Kepuasan`.
+:::
+
+# 4. Frekuensi dan Proporsi
+
+Sebelum menjalankan kode, prediksi:
+
+> Menurut Anda, kategori mana yang paling banyak muncul pada variabel nominal Anda?
+
+::: {.answer-box}
+**Prediksi Anda**
+
+Saya memprediksi kategori **Laptop** paling banyak muncul, karena laptop umum dipakai mahasiswa untuk belajar.
+:::
+
+Setelah itu, buat:
+
+- tabel frekuensi untuk variabel nominal;
+- proporsi untuk variabel ordinal.
+
+::: {.callout-tip}
+## Petunjuk kode
+
+```r
+table(...)
+prop.table(...)
+```
+
+Anda dapat menyimpan hasil `table()` ke sebuah objek terlebih dahulu sebelum menghitung proporsi.
+:::
+
+```{r}
+# Tulis kode Anda di sini
+# Frekuensi variabel nominal
+tab_nominal <- table(data[[nominal_var]])
+tab_nominal
+round(prop.table(tab_nominal), 3)
+
+# Proporsi variabel ordinal
+tab_ordinal <- table(data[[ordinal_var]])
+tab_ordinal
+round(prop.table(tab_ordinal), 3)
+```
+
+Tuliskan **dua kalimat insight** berdasarkan output.
+
+::: {.answer-box}
+**Interpretasi Anda**
+
+1. `DeviceUtama` didominasi **Laptop** (59 dari 106 mahasiswa, sekitar 55,7%), diikuti Tablet (26; 24,5%) dan Smartphone (21; 19,8%). Prediksi saya sesuai dengan hasilnya.
+2. Pada `Kepuasan`, mayoritas berada di kategori puas: Sangat Puas 36,2% dan Puas 33,3% (total sekitar 69,5%), sedangkan Tidak Puas hanya 6,7%.
+:::
+
+# 5. Tabel Silang
+
+Pasangan variabel Anda:
+
+```{r}
+x <- identitas$tab_baris[1]
+y <- identitas$tab_kolom[1]
+
+cat("Baris :", x, "\n")
+cat("Kolom :", y, "\n")
+```
+
+Buat tabel silang untuk kedua variabel tersebut.
+
+Jika diperlukan, tampilkan proporsi per baris untuk membantu membaca pola.
+
+::: {.callout-tip}
+## Petunjuk kode
+
+```r
+table(..., ...)
+prop.table(..., margin = 1)
+```
+
+Lengkapi sendiri objek yang diperlukan.
+:::
+
+```{r}
+# Tulis kode Anda di sini
+data[[y]] <- factor(data[[y]], levels = c("Rendah", "Sedang", "Tinggi"), ordered = TRUE)
+
+tab_silang <- table(data[[x]], data[[y]])
+tab_silang
+round(prop.table(tab_silang, margin = 1), 3)   # proporsi per baris
+```
+
+Tuliskan **satu kalimat** yang menjelaskan pola yang tampak.
+
+::: {.answer-box}
+**Interpretasi Anda**
+
+Pada setiap moda belajar, intensitas belajar tersebar cukup merata, tetapi moda *Buku* menonjol dengan proporsi intensitas Rendah paling besar (47,4%), sedangkan Praktik memiliki proporsi Tinggi terbesar (38,1%); ini hanya gambaran deskriptif, bukan bukti hubungan.
+:::
+
+::: {.callout-important}
+Gunakan bahasa deskriptif. Jangan langsung menyimpulkan adanya hubungan signifikan
+atau sebab-akibat.
+:::
+
+# 6. Visualisasi Kategorik
+
+Variabel yang divisualisasikan:
+
+```{r}
+v <- identitas$visualisasi[1]
+cat("Variabel grafik :", v, "\n")
+```
+
+Buat **satu grafik batang** seperti yang telah dipelajari pada Pertemuan 1.
+
+::: {.callout-tip}
+## Petunjuk kode
+
+```r
+library(ggplot2)
+
+ggplot(..., aes(x = ...)) +
+  geom_bar() +
+  labs(...)
+```
+
+Sesuaikan objek data, variabel, judul, dan label sumbu.
+:::
+
+```{r}
+# Tulis kode Anda di sini
+library(ggplot2)
+
+ggplot(data[!is.na(data[[v]]), ], aes(x = .data[[v]])) +
+  geom_bar(fill = "steelblue") +
+  labs(
+    title = "Distribusi Tingkat Kepuasan Belajar Mahasiswa",
+    x = "Tingkat Kepuasan",
+    y = "Jumlah Mahasiswa"
+  ) +
+  theme_minimal()
+```
+
+Tuliskan **satu kalimat** interpretasi grafik.
+
+::: {.answer-box}
+**Interpretasi Anda**
+
+Batang tertinggi ada pada kategori Sangat Puas (38 mahasiswa), disusul Puas (35) dan Cukup (25), sedangkan Tidak Puas paling sedikit (7), sehingga kepuasan cenderung berada di sisi positif.
+:::
+
+# 7. Kesimpulan
+
+Tuliskan **3 poin kesimpulan singkat** berdasarkan hasil analisis.
+
+Setiap kesimpulan harus:
+
+- didukung oleh output yang telah Anda hasilkan;
+- menggunakan angka yang relevan;
+- ditulis dengan bahasa Anda sendiri;
+- tidak menggunakan klaim sebab-akibat.
+
+::: {.answer-box}
+**Kesimpulan Anda**
+
+1. Perangkat utama mahasiswa didominasi Laptop (59 dari 106 responden, 55,7%), jauh di atas Tablet (24,5%) dan Smartphone (19,8%).
+2. Tingkat kepuasan cenderung tinggi: 73 dari 105 responden (69,5%) menjawab Puas atau Sangat Puas, sedangkan hanya 7 (6,7%) yang Tidak Puas.
+3. Pada tabel silang, intensitas belajar relatif merata di tiap moda belajar, kecuali moda Buku yang 47,4% berintensitas Rendah (dibanding sekitar 33-35% pada moda lain); pola ini hanya deskriptif dan tidak menunjukkan sebab-akibat.
+:::
+
+::: {.footer-note}
+**Analisis Data Kategori — Tugas 1**  
+Predict → Run → Inspect → Explain
+:::
